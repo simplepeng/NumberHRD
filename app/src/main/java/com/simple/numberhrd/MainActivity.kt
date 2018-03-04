@@ -89,12 +89,12 @@ class MainActivity : AppCompatActivity() {
         val random = Random()
         var randomValue = 0
         for (i in 0 until totalCount - 1) {
-//            do {
-//                randomValue = random.nextInt(totalCount - 1)
-//            } while (bool[randomValue])
-//            bool[randomValue] = true
-//            mDatas.add(ItemData(randomValue))
-            mDatas.add(ItemData(i))
+            do {
+                randomValue = random.nextInt(totalCount - 1)
+            } while (bool[randomValue])
+            bool[randomValue] = true
+            mDatas.add(ItemData(randomValue))
+//            mDatas.add(ItemData(i))
         }
         mDatas.add(ItemData(totalCount - 1))
     }
