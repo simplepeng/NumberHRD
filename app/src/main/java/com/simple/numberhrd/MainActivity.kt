@@ -10,35 +10,93 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
 
-    val TAG = "NumberHRD"
-    val mSpanCount = 3
-    val mDatas: MutableList<ItemData> = ArrayList()
+    private val TAG = "NumberHRD"
+    private var mSpanCount = 3
+    private val mDatas: MutableList<ItemData> = ArrayList()
+    private var mAdapter: Adapter? = null
+    private var mCanStart = false
+    private var mTimer:Timer? = null
+    private var mTimerTask:TimerTask? = null
+    private var mTimeSecond = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        toolbar.inflateMenu(R.menu.menu)
+        toolbar.setOnMenuItemClickListener { item ->
+            when (item?.itemId) {
+                R.id.reset -> {
+
+                }
+                R.id.three -> {
+                    mSpanCount = 3
+                    (recyclerView.layoutManager as GridLayoutManager)
+                            .spanCount = 3
+                }
+                R.id.four -> {
+                    mSpanCount = 4
+                    (recyclerView.layoutManager as GridLayoutManager)
+                            .spanCount = 4
+                }
+            }
+            btn_start.visibility = View.VISIBLE
+            tv_time.visibility = View.GONE
+            mTimer?.cancel()
+            mTimer = null
+            mTimerTask?.cancel()
+            mTimerTask = null
+            initData()
+            mAdapter?.notifyDataSetChanged()
+            true
+        }
+
+        btn_start.setOnClickListener {
+            mCanStart = true
+            it.visibility = View.GONE
+            tv_time.visibility = View.VISIBLE
+            tv_time.text = "0 秒"
+            mTimeSecond = 0
+            mTimer = Timer()
+            mTimerTask = object : TimerTask() {
+                override fun run() {
+                    runOnUiThread {
+                        mTimeSecond++
+                        tv_time.text = "$mTimeSecond 秒"
+                    }
+                }
+            }
+            mTimer?.schedule(mTimerTask, 1000, 1000)
+
+        }
+        initData()
+        mAdapter = Adapter()
+        recyclerView.layoutManager = GridLayoutManager(this, mSpanCount)
+        recyclerView.adapter = mAdapter
+    }
+
+    private fun initData() {
+        mDatas.clear()
         val totalCount = mSpanCount * mSpanCount
         val bool = BooleanArray(totalCount)
         val random = Random()
         var randomValue = 0
-        for (i in 0 until totalCount) {
-            do {
-                randomValue = random.nextInt(totalCount)
-            } while (bool[randomValue])
-            bool[randomValue] = true
-            mDatas.add(ItemData(randomValue))
+        for (i in 0 until totalCount - 1) {
+//            do {
+//                randomValue = random.nextInt(totalCount - 1)
+//            } while (bool[randomValue])
+//            bool[randomValue] = true
+//            mDatas.add(ItemData(randomValue))
+            mDatas.add(ItemData(i))
         }
-//        mDatas.add(ItemData(totalCount-1))
-        val adapter = Adapter()
-        recyclerView.layoutManager = GridLayoutManager(this, mSpanCount)
-        recyclerView.adapter = adapter
+        mDatas.add(ItemData(totalCount - 1))
     }
 
     inner class Adapter : RecyclerView.Adapter<ViewHolder>() {
@@ -57,27 +115,37 @@ class MainActivity : AppCompatActivity() {
                 itemView.cardElevation = 5f
                 itemView.setCardBackgroundColor(Color.WHITE)
             }
-            holder.itemView?.setOnClickListener {
+            holder.itemView.setOnClickListener {
                 Log.d(TAG, "position == $position")
-                val topPosition = position - mSpanCount
-                val leftPosition = position - 1
-                val rightPosition = position + 1
-                val bottomRight = position + mSpanCount
+                if (mCanStart) {
+                    val topPosition = position - mSpanCount
+                    val leftPosition = position - 1
+                    val rightPosition = position + 1
+                    val bottomRight = position + mSpanCount
 
-                for (moveToPosition in arrayOf(topPosition, leftPosition, rightPosition, bottomRight)) {
-                    if (moveToPosition < 0 || moveToPosition > mDatas.size - 1) {
-                        continue
+                    for (moveToPosition in arrayOf(topPosition, leftPosition, rightPosition, bottomRight)) {
+                        if (moveToPosition < 0 || moveToPosition > mDatas.size - 1) {
+                            continue
+                        }
+                        if (mDatas[moveToPosition].number == whiteSpaceNumber) {
+                            Log.d(TAG, "moveToPosition = $moveToPosition")
+                            val tempData = mDatas[position]
+                            mDatas[position] = mDatas[moveToPosition]
+                            mDatas[moveToPosition] = tempData
+                            notifyDataSetChanged()
+                        }
                     }
-                    if (mDatas[moveToPosition].number == whiteSpaceNumber) {
-                        Log.d(TAG, "moveToPosition = $moveToPosition")
-                        val tempData = mDatas[position]
-                        mDatas[position] = mDatas[moveToPosition]
-                        mDatas[moveToPosition] = tempData
-                        notifyDataSetChanged()
+
+                    if (isFinish(mDatas)) {
+                        Log.i(TAG, "Finished")
+                        mCanStart = false
+                        mTimer?.cancel()
+                        mTimer = null
+                        mTimerTask?.cancel()
+                        mTimerTask = null
+                        toast("这么快完成啦，真棒！")
                     }
                 }
-
-
             }
         }
 
@@ -88,11 +156,22 @@ class MainActivity : AppCompatActivity() {
             return ViewHolder(itemView)
         }
 
+        private fun isFinish(mDatas: MutableList<ItemData>): Boolean {
+            return mDatas.none {
+                mDatas.indexOf(it) < mDatas.size - 1 && it.number >
+                        mDatas[mDatas.indexOf(it) + 1].number
+            }
+        }
+
     }
 
     inner class ViewHolder(itemView: View?) : RecyclerView.ViewHolder(itemView) {
 
         val mTvNumber: TextView? = itemView?.findViewById(R.id.tv_number)
 
+    }
+
+    private fun toast(text: CharSequence) {
+        Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
     }
 }
