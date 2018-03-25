@@ -11,7 +11,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import com.simple.numberhrd.db.RecordEntity
 import kotlinx.android.synthetic.main.activity_main.*
+import java.text.SimpleDateFormat
 import java.util.*
 
 
@@ -22,13 +24,16 @@ class MainActivity : AppCompatActivity() {
     private val mDatas: MutableList<ItemData> = ArrayList()
     private var mAdapter: Adapter? = null
     private var mCanStart = false
-    private var mTimer:Timer? = null
-    private var mTimerTask:TimerTask? = null
+    private var mTimer: Timer? = null
+    private var mTimerTask: TimerTask? = null
     private var mTimeSecond = 0
+    private val fmt: SimpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        toast(fmt.format(Date()))
 
         toolbar.inflateMenu(R.menu.menu)
         toolbar.setOnMenuItemClickListener { item ->
@@ -49,6 +54,7 @@ class MainActivity : AppCompatActivity() {
             }
             btn_start.visibility = View.VISIBLE
             tv_time.visibility = View.GONE
+            mCanStart = false
             mTimer?.cancel()
             mTimer = null
             mTimerTask?.cancel()
@@ -87,7 +93,7 @@ class MainActivity : AppCompatActivity() {
         val totalCount = mSpanCount * mSpanCount
         val bool = BooleanArray(totalCount)
         val random = Random()
-        var randomValue = 0
+        var randomValue: Int
         for (i in 0 until totalCount - 1) {
             do {
                 randomValue = random.nextInt(totalCount - 1)
@@ -138,12 +144,20 @@ class MainActivity : AppCompatActivity() {
 
                     if (isFinish(mDatas)) {
                         Log.i(TAG, "Finished")
+
+                        val recordEntity = RecordEntity()
+                        recordEntity.finish_time = mTimeSecond
+                        recordEntity.finish_date = fmt.format(Date())
+                        insertRecord(recordEntity)
+
                         mCanStart = false
                         mTimer?.cancel()
                         mTimer = null
                         mTimerTask?.cancel()
                         mTimerTask = null
                         toast("这么快完成啦，真棒！")
+
+
                     }
                 }
             }
@@ -173,5 +187,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun toast(text: CharSequence) {
         Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
+    }
+
+    fun insertRecord(recordEntity: RecordEntity) {
+        (application as App).db?.recordDao()?.insert(recordEntity)
     }
 }
