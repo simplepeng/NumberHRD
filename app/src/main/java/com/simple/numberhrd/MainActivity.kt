@@ -1,5 +1,7 @@
 package com.simple.numberhrd
 
+import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -13,6 +15,9 @@ import android.widget.TextView
 import android.widget.Toast
 import com.simple.numberhrd.db.RecordEntity
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import org.jetbrains.anko.coroutines.experimental.bg
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,33 +46,30 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = mAdapter
     }
 
-    private fun initView(){
+    private fun initView() {
         toolbar.inflateMenu(R.menu.menu)
         toolbar.setOnMenuItemClickListener { item ->
             when (item?.itemId) {
                 R.id.reset -> {
-
+                    reset()
                 }
                 R.id.three -> {
                     mSpanCount = 3
                     (recyclerView.layoutManager as GridLayoutManager)
                             .spanCount = 3
+                    reset()
                 }
                 R.id.four -> {
                     mSpanCount = 4
                     (recyclerView.layoutManager as GridLayoutManager)
                             .spanCount = 4
+                    reset()
+                }
+                R.id.record -> {
+                    startActivity(Intent(this@MainActivity, RecordActivity::class.java))
                 }
             }
-            btn_start.visibility = View.VISIBLE
-            tv_time.visibility = View.GONE
-            mCanStart = false
-            mTimer?.cancel()
-            mTimer = null
-            mTimerTask?.cancel()
-            mTimerTask = null
-            initData()
-            mAdapter?.notifyDataSetChanged()
+
             true
         }
 
@@ -90,6 +92,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun reset() {
+        btn_start.visibility = View.VISIBLE
+        tv_time.visibility = View.GONE
+        mCanStart = false
+        mTimer?.cancel()
+        mTimer = null
+        mTimerTask?.cancel()
+        mTimerTask = null
+        initData()
+        mAdapter?.notifyDataSetChanged()
+    }
+
     private fun initData() {
         mDatas.clear()
         val totalCount = mSpanCount * mSpanCount
@@ -101,6 +115,7 @@ class MainActivity : AppCompatActivity() {
                 randomValue = random.nextInt(totalCount - 1)
             } while (bool[randomValue])
             bool[randomValue] = true
+//            mDatas.add(ItemData(i))
             mDatas.add(ItemData(randomValue))
         }
         mDatas.add(ItemData(totalCount - 1))
@@ -185,11 +200,12 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun toast(text: CharSequence) {
-        Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
-    }
-
     fun insertRecord(recordEntity: RecordEntity) {
-        (application as App).db?.recordDao()?.insert(recordEntity)
+        async(UI) {
+            bg {
+                (application as App).db?.recordDao()?.insert(recordEntity)
+            }
+        }
+
     }
 }

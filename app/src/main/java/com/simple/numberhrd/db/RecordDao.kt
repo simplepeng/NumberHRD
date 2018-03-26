@@ -9,7 +9,7 @@ import io.reactivex.Observable
 @Dao
 interface RecordDao {
 
-    @Query("SELECT * FROM tb_record")
+    @Query("SELECT * FROM tb_record ORDER BY finish_seconds")
     fun getAll(): List<RecordEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
