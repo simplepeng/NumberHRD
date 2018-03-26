@@ -33,8 +33,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        toast(fmt.format(Date()))
+        initView()
+        initData()
 
+        mAdapter = Adapter()
+        recyclerView.layoutManager = GridLayoutManager(this, mSpanCount)
+        recyclerView.adapter = mAdapter
+    }
+
+    private fun initView(){
         toolbar.inflateMenu(R.menu.menu)
         toolbar.setOnMenuItemClickListener { item ->
             when (item?.itemId) {
@@ -80,12 +87,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             mTimer?.schedule(mTimerTask, 1000, 1000)
-
         }
-        initData()
-        mAdapter = Adapter()
-        recyclerView.layoutManager = GridLayoutManager(this, mSpanCount)
-        recyclerView.adapter = mAdapter
     }
 
     private fun initData() {
@@ -100,7 +102,6 @@ class MainActivity : AppCompatActivity() {
             } while (bool[randomValue])
             bool[randomValue] = true
             mDatas.add(ItemData(randomValue))
-//            mDatas.add(ItemData(i))
         }
         mDatas.add(ItemData(totalCount - 1))
     }
@@ -146,8 +147,8 @@ class MainActivity : AppCompatActivity() {
                         Log.i(TAG, "Finished")
 
                         val recordEntity = RecordEntity()
-                        recordEntity.finish_time = mTimeSecond
-                        recordEntity.finish_date = fmt.format(Date())
+                        recordEntity.finishSeconds = mTimeSecond
+                        recordEntity.finishDate = fmt.format(Date())
                         insertRecord(recordEntity)
 
                         mCanStart = false
@@ -156,7 +157,6 @@ class MainActivity : AppCompatActivity() {
                         mTimerTask?.cancel()
                         mTimerTask = null
                         toast("这么快完成啦，真棒！")
-
 
                     }
                 }
