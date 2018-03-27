@@ -149,6 +149,9 @@ class MainActivity : AppCompatActivity() {
                         if (moveToPosition < 0 || moveToPosition > mDatas.size - 1) {
                             continue
                         }
+                        if (moveToPosition == rightPosition && moveToPosition % mSpanCount == 0) {
+                            continue
+                        }
                         if (mDatas[moveToPosition].number == whiteSpaceNumber) {
                             Log.d(TAG, "moveToPosition = $moveToPosition")
                             val tempData = mDatas[position]
