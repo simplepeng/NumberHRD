@@ -1,8 +1,7 @@
 apply plugin: 'com.android.application'
-
 apply plugin: 'kotlin-android'
-
 apply plugin: 'kotlin-android-extensions'
+ext.anko_version='0.10.4'
 apply plugin: 'kotlin-kapt'
 
 android {
@@ -43,4 +42,12 @@ dependencies {
     kapt "android.arch.persistence.room:compiler:1.0.0"
     // RxJava support for Room
     implementation "android.arch.persistence.room:rxjava2:1.0.0"
+    implementation "org.jetbrains.anko:anko:$anko_version"
+    implementation 'com.google.android.gms:play-services-ads:15.0.0'
+}
+
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
 }

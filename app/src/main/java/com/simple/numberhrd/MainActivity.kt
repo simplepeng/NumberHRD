@@ -1,5 +1,6 @@
 package com.simple.numberhrd
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -10,9 +11,13 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
 import com.simple.numberhrd.db.RecordEntity
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import org.jetbrains.anko.coroutines.experimental.bg
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,38 +34,51 @@ class MainActivity : AppCompatActivity() {
     private var mTimeSecond = 0
     private val fmt: SimpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
 
+    lateinit var mAdView : AdView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        toast(fmt.format(Date()))
+        initView()
+        initData()
+        initAdView()
 
+        mAdapter = Adapter()
+        recyclerView.layoutManager = GridLayoutManager(this, mSpanCount)
+        recyclerView.adapter = mAdapter
+    }
+
+    private fun initAdView(){
+        mAdView = findViewById(R.id.adView)
+        val adRequest = AdRequest.Builder().build()
+        mAdView.loadAd(adRequest)
+    }
+
+    private fun initView() {
         toolbar.inflateMenu(R.menu.menu)
         toolbar.setOnMenuItemClickListener { item ->
             when (item?.itemId) {
                 R.id.reset -> {
-
+                    reset()
                 }
                 R.id.three -> {
                     mSpanCount = 3
                     (recyclerView.layoutManager as GridLayoutManager)
                             .spanCount = 3
+                    reset()
                 }
                 R.id.four -> {
                     mSpanCount = 4
                     (recyclerView.layoutManager as GridLayoutManager)
                             .spanCount = 4
+                    reset()
+                }
+                R.id.record -> {
+                    startActivity(Intent(this@MainActivity, RecordActivity::class.java))
                 }
             }
-            btn_start.visibility = View.VISIBLE
-            tv_time.visibility = View.GONE
-            mCanStart = false
-            mTimer?.cancel()
-            mTimer = null
-            mTimerTask?.cancel()
-            mTimerTask = null
-            initData()
-            mAdapter?.notifyDataSetChanged()
+
             true
         }
 
@@ -80,12 +98,19 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             mTimer?.schedule(mTimerTask, 1000, 1000)
-
         }
+    }
+
+    private fun reset() {
+        btn_start.visibility = View.VISIBLE
+        tv_time.visibility = View.GONE
+        mCanStart = false
+        mTimer?.cancel()
+        mTimer = null
+        mTimerTask?.cancel()
+        mTimerTask = null
         initData()
-        mAdapter = Adapter()
-        recyclerView.layoutManager = GridLayoutManager(this, mSpanCount)
-        recyclerView.adapter = mAdapter
+        mAdapter?.notifyDataSetChanged()
     }
 
     private fun initData() {
@@ -99,8 +124,8 @@ class MainActivity : AppCompatActivity() {
                 randomValue = random.nextInt(totalCount - 1)
             } while (bool[randomValue])
             bool[randomValue] = true
-            mDatas.add(ItemData(randomValue))
 //            mDatas.add(ItemData(i))
+            mDatas.add(ItemData(randomValue))
         }
         mDatas.add(ItemData(totalCount - 1))
     }
@@ -133,6 +158,9 @@ class MainActivity : AppCompatActivity() {
                         if (moveToPosition < 0 || moveToPosition > mDatas.size - 1) {
                             continue
                         }
+                        if (moveToPosition == rightPosition && moveToPosition % mSpanCount == 0) {
+                            continue
+                        }
                         if (mDatas[moveToPosition].number == whiteSpaceNumber) {
                             Log.d(TAG, "moveToPosition = $moveToPosition")
                             val tempData = mDatas[position]
@@ -146,8 +174,8 @@ class MainActivity : AppCompatActivity() {
                         Log.i(TAG, "Finished")
 
                         val recordEntity = RecordEntity()
-                        recordEntity.finish_time = mTimeSecond
-                        recordEntity.finish_date = fmt.format(Date())
+                        recordEntity.finishSeconds = mTimeSecond
+                        recordEntity.finishDate = fmt.format(Date())
                         insertRecord(recordEntity)
 
                         mCanStart = false
@@ -156,7 +184,6 @@ class MainActivity : AppCompatActivity() {
                         mTimerTask?.cancel()
                         mTimerTask = null
                         toast("这么快完成啦，真棒！")
-
 
                     }
                 }
@@ -185,11 +212,12 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun toast(text: CharSequence) {
-        Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
-    }
-
     fun insertRecord(recordEntity: RecordEntity) {
-        (application as App).db?.recordDao()?.insert(recordEntity)
+        async(UI) {
+            bg {
+                (application as App).db?.recordDao()?.insert(recordEntity)
+            }
+        }
+
     }
 }
